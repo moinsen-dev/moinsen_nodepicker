@@ -1,0 +1,19 @@
+name: moinsen_nodepicker
+description: "Flutter package to pick in node in a parent child data structure easily."
+version: 0.1.0
+homepage:
+
+environment:
+  sdk: ^3.5.3
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
