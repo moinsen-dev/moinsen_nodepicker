@@ -45,26 +45,19 @@ const _jsonNodes = {
   ],
 };
 
-class JsonNodeData implements MoinsenNode {
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String? parentId;
-
+class JsonNodeData extends MoinsenNode {
   JsonNodeData({
-    required this.id,
-    required this.name,
-    this.parentId,
+    required super.id,
+    required super.name,
+    super.parentId,
+    required super.hasChildren,
   });
 
   @override
   String toString() {
-    return 'FixedNodeData{id: $id, name: $name}';
+    return 'JsonNodeData{id: $id, name: $name, hasChildren: $hasChildren}';
   }
 
-  @override
   List<MoinsenNode> get children {
     return _getChildrenFromJson(id);
   }
@@ -79,12 +72,6 @@ class JsonNodeData implements MoinsenNode {
     return _findNodeById(id, _jsonNodes);
   }
 
-  @override
-  MoinsenNode? get parent {
-    if (parentId == null) return null;
-    return _findNodeById(parentId!, _jsonNodes);
-  }
-
   // Helper method to get children from _jsonNodes
   List<MoinsenNode> _getChildrenFromJson(String parentId) {
     var node = _findNodeInJson(parentId, _jsonNodes);
@@ -94,6 +81,8 @@ class JsonNodeData implements MoinsenNode {
                 id: child['id'],
                 name: child['name'],
                 parentId: parentId,
+                hasChildren: child['children'] != null &&
+                    (child['children'] as List).isNotEmpty,
               ))
           .toList();
     }
@@ -112,7 +101,7 @@ class JsonNodeData implements MoinsenNode {
     return null;
   }
 
-  // Helper method to find and create a FixedNodeData from _jsonNodes
+  // Helper method to find and create a JsonNodeData from _jsonNodes
   JsonNodeData _findNodeById(String id, Map<String, dynamic> json) {
     var node = _findNodeInJson(id, json);
     if (node != null) {
@@ -120,6 +109,8 @@ class JsonNodeData implements MoinsenNode {
         id: node['id'],
         name: node['name'],
         parentId: _findParentId(id, json),
+        hasChildren:
+            node['children'] != null && (node['children'] as List).isNotEmpty,
       );
     }
     throw Exception('Node with id $id not found');

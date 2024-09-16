@@ -1,14 +1,14 @@
+import 'package:flutter/cupertino.dart';
 import 'package:moinsen_nodepicker/moinsen_nodepicker.dart';
 
 import 'geo_api.dart';
 
-/// Concrete class representing geographical nodes like continents, countries, regions, and cities.
 class GeoNode extends MoinsenNode {
   // Additional data fields
   final int? numberOfPeople;
   final List<String>? listOfLanguages;
   final int? numberOfCities;
-  final int? numberOfCountries; // Added this field
+  final int? numberOfCountries;
   final String? urlImageFlag;
   final String? flag;
   final GeoNodeType type;
@@ -19,47 +19,81 @@ class GeoNode extends MoinsenNode {
     required super.id,
     required super.name,
     super.parentId,
+    required super.hasChildren,
     this.type = GeoNodeType.unknown,
     this.numberOfPeople,
     this.listOfLanguages,
     this.numberOfCities,
-    this.numberOfCountries, // Added this parameter
+    this.numberOfCountries,
     this.urlImageFlag,
     this.flag,
   });
 
-  /// Fetches a node by its [id].
-  @override
-  Future<GeoNode> fetchNode(String id) async {
-    if (id.startsWith('continent_')) {
-      return await _api.fetchContinent(id);
-    } else if (id.length == 2) {
-      // Assume it's a country code
-      return await _api.fetchCountry(id);
-    } else {
-      // Implement fetchRegion and fetchCity as needed
-      throw UnimplementedError('fetchNode for this id is not implemented');
-    }
-  }
+  List<MoinsenNode>? _children;
 
-  /// Fetches all children of the current node.
-  @override
-  Future<List<GeoNode>> fetchChildren() async {
-    if (id.startsWith('continent_')) {
-      return await _api.fetchCountriesInContinent(name);
-    } else if (id == 'world') {
-      return await _api.fetchWorldContinents();
-    } else if (id.length == 2) {
-      return await _api.fetchRegionsInCountry(id);
-    } else {
-      throw UnimplementedError(
-          'fetchChildren for this node is not implemented');
+  List<MoinsenNode> get children {
+    if (_children == null) {
+      throw Exception(
+          'Children have not been fetched yet. Call fetchChildren() first.');
     }
+    return _children!;
   }
 
   @override
-  List<MoinsenNode> get children => throw UnimplementedError();
+  Future<List<MoinsenNode>> fetchChildren() async {
+    try {
+      switch (type) {
+        case GeoNodeType.world:
+          _children = await _api.fetchWorld(id);
+          break;
+        case GeoNodeType.continent:
+          _children = await _api.fetchCountriesInContinent(id, name);
+          break;
+        case GeoNodeType.country:
+        case GeoNodeType.region:
+        case GeoNodeType.subRegion:
+        case GeoNodeType.city:
+        case GeoNodeType.unknown:
+          debugPrint(
+              'Fetching children for ${type.toString()} is not implemented yet.');
+          _children = [];
+      }
+
+      return _children!;
+    } catch (e) {
+      throw Exception('Failed to fetch children: $e');
+    }
+  }
 
   @override
-  MoinsenNode get parent => throw UnimplementedError();
+  Future<MoinsenNode> fetchNode(String id) async {
+    try {
+      // Since there's no direct method to fetch a single node,
+      // we'll fetch the parent's children and find the node with the matching id
+      if (parentId == null) {
+        throw Exception('Cannot fetch node without a parent id');
+      }
+
+      final parentNode = GeoNode(
+        id: parentId!,
+        name:
+            '', // We don't know the parent's name, but it's not used in fetching
+        hasChildren: true,
+        type: type == GeoNodeType.country
+            ? GeoNodeType.continent
+            : GeoNodeType.world,
+      );
+
+      final siblings = await parentNode.fetchChildren();
+      final node = siblings.firstWhere((node) => node.id == id);
+
+      if (node is GeoNode) {
+        return node;
+      } else {
+        throw Exception('Fetched node is not of type GeoNode');
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch node: $e');
+    }
+  }
 }

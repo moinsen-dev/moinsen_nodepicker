@@ -21,6 +21,7 @@ class _FixedNodesPageState extends State<FixedNodesPage> {
     rootNode = JsonNodeData(
       id: '0',
       name: 'Root',
+      hasChildren: true, // Add this line
     );
     _selectedNode = rootNode;
   }
@@ -47,13 +48,6 @@ class _FixedNodesPageState extends State<FixedNodesPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Breadcrumb:',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: MoinsenSelect(

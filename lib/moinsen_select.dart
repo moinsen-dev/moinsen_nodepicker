@@ -5,10 +5,15 @@ import 'moinsen_node.dart';
 
 enum MoinsenSelectNodeMethod { onTap, onDoubleTap, onLongPress, onSwipe }
 
+enum MoinsenSelectSortNodes { ascending, descending, none, custom }
+
 class MoinsenSelect extends StatefulWidget {
   final MoinsenNode node;
+
   final void Function(MoinsenNode node)? onSelect;
+
   final void Function()? onError;
+  final int Function(MoinsenNode a, MoinsenNode b)? compareNodes;
 
   // New parameters
   final int? itemCount;
@@ -35,6 +40,9 @@ class MoinsenSelect extends StatefulWidget {
   // New parameter for showRootButton option
   final bool showRootButton;
 
+  // New parameter for sortNodes option
+  final MoinsenSelectSortNodes sortNodes;
+
   const MoinsenSelect({
     super.key,
     required this.node,
@@ -52,9 +60,11 @@ class MoinsenSelect extends StatefulWidget {
     this.width = 300,
     this.height = 200,
     this.visibleChildrenCount = 5,
-    this.selectMethod = MoinsenSelectNodeMethod.onTap, // Default to onTap
-    this.useArrows = true, // Default to true
-    this.showRootButton = true, // Default to true
+    this.selectMethod = MoinsenSelectNodeMethod.onTap,
+    this.useArrows = true,
+    this.showRootButton = true,
+    this.sortNodes = MoinsenSelectSortNodes.ascending,
+    this.compareNodes,
   });
 
   @override
@@ -63,17 +73,18 @@ class MoinsenSelect extends StatefulWidget {
 
 class MoinsenSelectState extends State<MoinsenSelect> {
   MoinsenNode? selectedNode;
+
   List<MoinsenNode> childrenNodes = [];
   List<MoinsenNode> nodeStack = [];
 
   bool isLoading = false;
-  bool hasChildren = false;
   bool hasError = false;
 
   @override
   void initState() {
     super.initState();
     selectedNode = widget.node;
+    nodeStack.add(selectedNode!);
 
     _loadChildren();
   }
@@ -92,19 +103,26 @@ class MoinsenSelectState extends State<MoinsenSelect> {
         // If there are no children, the current node remains visible
         if (selectedNode != null) {
           _setSelectedNode(selectedNode!);
-          setState(() {
-            hasChildren = false;
-          });
-        } else {
-          hasChildren = true;
         }
       } else {
+        switch (widget.sortNodes) {
+          case MoinsenSelectSortNodes.ascending:
+            childrenNodes.sort((a, b) => a.name.compareTo(b.name));
+            break;
+          case MoinsenSelectSortNodes.descending:
+            childrenNodes.sort((a, b) => b.name.compareTo(a.name));
+            break;
+          case MoinsenSelectSortNodes.custom:
+            if (widget.compareNodes != null) {
+              childrenNodes.sort(widget.compareNodes!);
+            }
+            break;
+          case MoinsenSelectSortNodes.none:
+          default:
+            break;
+        }
+
         _setSelectedNode(childrenNodes.first);
-        setState(
-          () {
-            hasChildren = true;
-          },
-        );
       }
     } catch (e) {
       hasError = true;
@@ -121,7 +139,7 @@ class MoinsenSelectState extends State<MoinsenSelect> {
       List<MoinsenNode> children = await selectedNode!.fetchChildren();
 
       if (children.isNotEmpty) {
-        nodeStack.add(selectedNode!); // Store the entire MoinsenNode
+        nodeStack.add(selectedNode!);
         await _loadChildren();
       } else {
         // If there are no children, the current node remains visible
@@ -135,6 +153,7 @@ class MoinsenSelectState extends State<MoinsenSelect> {
       setState(() {
         selectedNode = nodeStack.removeLast();
       });
+
       _loadChildren();
     }
   }
@@ -147,7 +166,9 @@ class MoinsenSelectState extends State<MoinsenSelect> {
     setState(() {
       selectedNode = widget.node;
       nodeStack.clear();
+      nodeStack.add(selectedNode!);
     });
+
     _loadChildren();
   }
 
@@ -156,9 +177,7 @@ class MoinsenSelectState extends State<MoinsenSelect> {
       selectedNode = node;
     });
 
-    if (widget.onSelect != null) {
-      widget.onSelect!(selectedNode!);
-    }
+    widget.onSelect?.call(selectedNode!);
   }
 
   @override
@@ -206,10 +225,17 @@ class MoinsenSelectState extends State<MoinsenSelect> {
     );
   }
 
+  MoinsenNode? get parent => nodeStack.isNotEmpty ? nodeStack.last : null;
+
+  String get breadCrump {
+    return nodeStack.map((node) => node.name).join(' -> ');
+  }
+
   Widget _buildContent() {
     if (isLoading) {
       return Center(
-          child: widget.loadingIndicator ?? const CircularProgressIndicator());
+        child: widget.loadingIndicator ?? const CircularProgressIndicator(),
+      );
     }
 
     return Column(
@@ -217,8 +243,26 @@ class MoinsenSelectState extends State<MoinsenSelect> {
         if (widget.showRootButton)
           ElevatedButton(
             onPressed: _goToRoot,
-            child: const Text('Root'),
+            child: const Text('Show Root'),
           ),
+        Center(
+          child: Text(
+            'Breadcrump: $breadCrump',
+            style: widget.itemTextStyle ??
+                TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+          ),
+        ),
+        Center(
+          child: Text(
+            'Current: ${parent?.name ?? ''}',
+            style: widget.itemTextStyle ??
+                TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+          ),
+        ),
         Expanded(
           child:
               widget.useArrows ? _buildArrowContent() : _buildCupertinoPicker(),
@@ -227,20 +271,23 @@ class MoinsenSelectState extends State<MoinsenSelect> {
     );
   }
 
+  bool get hasParent => selectedNode?.parentId != null;
+  bool get hasChildren => selectedNode?.hasChildren == true;
+
   Widget _buildArrowContent() {
     return Row(
       children: [
         Opacity(
-          opacity: nodeStack.isNotEmpty ? 1.0 : 0,
+          opacity: hasParent ? 1.0 : 0,
           child: IconButton(
             iconSize: 50,
             icon: const Icon(Icons.arrow_back),
-            onPressed: nodeStack.isNotEmpty ? _goToParent : null,
+            onPressed: hasParent ? _goToParent : null,
           ),
         ),
         Expanded(child: _buildCupertinoPicker()),
         Opacity(
-          opacity: hasChildren ? 1.0 : 0.5,
+          opacity: hasChildren ? 1.0 : 0,
           child: IconButton(
             iconSize: 50,
             icon: const Icon(Icons.arrow_forward),
@@ -260,13 +307,6 @@ class MoinsenSelectState extends State<MoinsenSelect> {
         });
 
         _setSelectedNode(selectedNode!);
-
-        // Check if the selected node has children
-        List<MoinsenNode> children = await selectedNode!.fetchChildren();
-
-        setState(() {
-          hasChildren = children.isNotEmpty;
-        });
       },
       useMagnifier: true,
       magnification: 1.1,

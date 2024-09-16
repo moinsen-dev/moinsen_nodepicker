@@ -17,6 +17,7 @@ class _SimpleNodesPageState extends State<SimpleNodesPage> {
     id: '0',
     name: 'Root',
     numberOfChildren: 5,
+    hasChildren: true, // Add this line
   );
 
   @override
@@ -48,13 +49,6 @@ class _SimpleNodesPageState extends State<SimpleNodesPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Breadcrump:',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: MoinsenSelect(

@@ -2,15 +2,14 @@ abstract class MoinsenNode {
   final String id;
   final String? parentId;
   final String name;
+  final bool hasChildren;
 
   MoinsenNode({
     required this.id,
     required this.name,
     this.parentId,
+    required this.hasChildren,
   });
-
-  MoinsenNode? get parent;
-  List<MoinsenNode> get children;
 
   /// Asynchronously fetches a node by its [id].
   Future<MoinsenNode> fetchNode(String id);

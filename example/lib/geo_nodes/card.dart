@@ -7,6 +7,20 @@ class GeoNodeCard extends StatelessWidget {
 
   const GeoNodeCard({super.key, required this.node});
 
+  String formatPopulation(int? population) {
+    if (population == null) return '-';
+
+    if (population < 1000) {
+      return population.toString();
+    } else if (population < 1000000) {
+      return '${(population / 1000).toStringAsFixed(1)} K';
+    } else if (population < 1000000000) {
+      return '${(population / 1000000).toStringAsFixed(1)} M';
+    }
+
+    return '${(population / 1000000000).toStringAsFixed(1)} B';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -38,7 +52,7 @@ class GeoNodeCard extends StatelessWidget {
             const SizedBox(height: 16),
             if (node.numberOfPeople != null)
               Text(
-                'Population: ${node.numberOfPeople!.toString()}',
+                'Population: ${formatPopulation(node.numberOfPeople)}',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             if (node.listOfLanguages != null &&

@@ -16,6 +16,7 @@ class _GeoNodesPageState extends State<GeoNodesPage> {
   GeoNode? _selectedNode;
 
   late GeoNode rootNode;
+  List<MoinsenNode> nodePath = [];
 
   @override
   void initState() {
@@ -23,6 +24,7 @@ class _GeoNodesPageState extends State<GeoNodesPage> {
       id: 'world',
       name: 'World',
       type: GeoNodeType.world,
+      hasChildren: true, // The world node always has children (continents)
     );
 
     _selectedNode = rootNode;
@@ -35,6 +37,10 @@ class _GeoNodesPageState extends State<GeoNodesPage> {
     setState(() {
       _selectedNode = node as GeoNode;
     });
+  }
+
+  void onPathUpdate(List<MoinsenNode> path) {
+    nodePath = path;
   }
 
   /// Fehlerbehandlung
@@ -54,13 +60,6 @@ class _GeoNodesPageState extends State<GeoNodesPage> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Breadcrump:',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
               child: MoinsenSelect(
                 node: rootNode,
                 onSelect: onSelect,
@@ -70,13 +69,6 @@ class _GeoNodesPageState extends State<GeoNodesPage> {
                 visibleChildrenCount: 5,
                 itemExtent: 40,
                 itemTextStyle: const TextStyle(fontSize: 16),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(64.0),
-              child: Text(
-                'Selected node: $_selectedNode.name',
-                style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
             Center(

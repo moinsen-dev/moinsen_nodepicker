@@ -1,6 +1,6 @@
 name: moinsen_nodepicker
 description: "Flutter package to pick in node in a parent child data structure easily."
-version: 0.1.0
+version: 0.2.0
 homepage:
 
 environment:
